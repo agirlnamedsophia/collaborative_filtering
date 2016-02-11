@@ -1,4 +1,4 @@
-# Collaborative Filtering
+# Collaborative Filtering ![Build Status](https://travis-ci.org/akellehe/collaborative_filtering.svg?branch=master)
 
 Get started by installing requirements
 
