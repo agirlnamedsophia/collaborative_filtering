@@ -29,3 +29,12 @@ To run the unit tests:
 ```
 nosetests tests.py
 ```
+
+# Running the web application
+
+It's a basic tornado app at the moment, running on your physical machine with no virtualization. You can run the web app like
+
+```
+>> python app.py
+```
+Then go to `http://localhost:8080` in your browser. 
