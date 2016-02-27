@@ -23,3 +23,12 @@ Then launch the test, it'll take a couple hours.
 ```
 python fill.py && time python collaborative_filtering.py
 ```
+
+# Running the web application
+
+It's a basic tornado app at the moment, running on your physical machine with no virtualization. You can run the web app like
+
+```
+>> python app.py
+```
+Then go to `http://localhost:8080` in your browser. 
