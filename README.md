@@ -23,3 +23,9 @@ Then launch the test, it'll take a couple hours.
 ```
 python fill.py && time python collaborative_filtering.py
 ```
+
+To run the unit tests:
+
+```
+nosetests tests.py
+```
