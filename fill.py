@@ -15,7 +15,7 @@ def str_to_uid(string):
     return struct.unpack('l', string)[0]
 
 def get_random_uid():
-    return uid_to_str(random.randint(1, int(10*USER_CARDINALITY))):
+    return uid_to_str(random.randint(1, int(10*USER_CARDINALITY)))
 
 
 if __name__ == '__main__':
