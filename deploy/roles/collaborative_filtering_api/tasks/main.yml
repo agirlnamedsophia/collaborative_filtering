@@ -1,0 +1,14 @@
+---
+- name: "Install python requirements"
+  pip: requirements=/opt/collaborative_filtering/requirements.txt virtualenv=/collaborative_filtering/local/venv/collaborative_filtering
+
+- name: "Install webapp"
+  daemontools_svc:
+   name: webapp
+   state: started
+   user: collaborative_filtering
+   run_cmd: "/collaborative_filtering/local/venv/collaborative_filtering/bin/python /collaborative_filtering/local/app.py --port={incr}"
+   setup_cmd: "export APP_ENVIRONMENT=dev"
+   daemon_path: "/opt/collaborative_filtering/app.py"
+   count: 2
+   incr_start: 8080

@@ -1,0 +1,26 @@
+---
+- name: "Create collaborative_filtering group"
+  group: name=collaborative_filtering state=present
+
+- name: "Create collaborative_filtering user"
+  user: name=collaborative_filtering groups=collaborative_filtering state=present
+
+- name: "Create local directory"
+  file: group=collaborative_filtering owner=collaborative_filtering state=directory path=/collaborative_filtering/local recurse=true
+
+- name: "Create venv directory"
+  file: group=collaborative_filtering owner=collaborative_filtering state=directory path=/collaborative_filtering/local/venv recurse=true
+
+- name: "Create application service directory"
+  file: group=collaborative_filtering owner=collaborative_filtering state=directory path=/collaborative_filtering/service recurse=true
+
+- name: "Install virtualenv"
+  apt: name=python-virtualenv state=present
+
+- name: "Create collaborative_filtering virtual environment"
+  pip: 
+    requirements: /opt/collaborative_filtering/requirements.txt
+    virtualenv: /collaborative_filtering/local/venv/collaborative_filtering
+    virtualenv_command: /usr/bin/virtualenv
+    # virtualenv /collaborative_filtering/local/venv/collaborative_filtering
+
