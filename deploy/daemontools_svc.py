@@ -2,6 +2,12 @@ from ansible.module_utils.basic import *
 
 import sys
 
+DOCUMENTATION = """
+---
+module: daemontools_svc
+short_description: This module deploys services under daemontools/svc
+"""
+
 """
 For the test/debug cycle ansible provides ansible/hacking/test-module in their repository located at http://github.com/ansible/ansible
 
@@ -40,6 +46,14 @@ LOG = """
 #!/bin/sh
 exec {chuser}s multilog t ./main
 """
+def test_writeable(path, module): 
+    try:
+        with open('{}/test'.format(path), 'w+'):
+            pass
+        os.unlink('{}/test'.format(path))
+    except OSError:
+        module.fail_json(
+                msg="{} should exist and be writeable by the deploy user".format(path)) 
 
 def main():
     module = AnsibleModule(
@@ -73,8 +87,8 @@ def main():
     if state not in ('started', 'stopped'):
         module.fail_json(msg="State should be either 'started' or 'stopped'")
 
-    chuser = "setuidgid {}".format(user) if user.strip() else ""
-    interpreter = "{}/bin/python" if virtualenv.strip() else sys.executable
+    chuser = "setuidgid {}".format(user.strip()) if user.strip() else ""
+    interpreter = "{}/bin/python".format(virtualenv.strip()) if virtualenv.strip() else sys.executable
     exec_path = exec_path.strip()
     args = " ".join(["--{}={}".format(k, v) for k, v in args.items()])
 
@@ -87,12 +101,19 @@ def main():
 
     """
     TODO: 
-    * Check for writeablility of local path to copy executable to for linking.
-    * Check that we can link to /service
-    * Check that the user exists and make the copy of our executable executable by them
     * Test setup command?  
-      
     """
+    if state == 'started':
+        # Check for writeablility of local path to copy daemon to. /collaborative_filtering/service
+        test_writeable('/collaborative_filtering/local', module)
+        # Check writeability of path to install run script (that references the daemon script in the run command)
+        test_writeable('/collaborative_filtering/service', module)
+        # Check that we can link in /service
+        test_writeable('/service')
+        # Check that the user exists and make the copy of our daemon executable by them
+    else:
+        pass # TODO: Remove the service
+
     module.exit_json(changed=True, **{
         'run': run, 'log': log
     })
