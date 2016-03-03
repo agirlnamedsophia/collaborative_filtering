@@ -1,6 +1,9 @@
 from ansible.module_utils.basic import * 
 
+import os
 import sys
+import pwd
+import shutil
 
 DOCUMENTATION = """
 ---
@@ -14,7 +17,7 @@ For the test/debug cycle ansible provides ansible/hacking/test-module in their r
 You can run with the following command:
 
 ```
->> ansible/hacking/test-module -m collaborative_filtering/deploy/daemontools_svc.py -a '{"state": "started", "setup_cmd": "export APP_ENVIRONMENT=stage;", "virtualenv": "/opt/local/venv/collaborative_filtering", "user": "cfuser", "args": {"lookupd-http-address": "127.0.0.1:4151"}, "exec_path": "/opt/collaborative_filtering/collaborative_filtering.py", "name": "collaborative_filtering", "count": 5}'
+>> ansible/hacking/test-module -m collaborative_filtering/deploy/daemontools_svc.py -a '{"state": "started", "setup_cmd": "export APP_ENVIRONMENT=stage;", "virtualenv": "/opt/local/venv/collaborative_filtering", "user": "cfuser", "args": {"lookupd-http-address": "127.0.0.1:4151"}, "daemon_path": "/opt/collaborative_filtering/collaborative_filtering.py", "name": "collaborative_filtering", "count": 5}'
 ```
 
 This will generate a file at ~/.ansible_module_generated you can then invoke with python to see how it runs:
@@ -35,16 +38,21 @@ https://cr.yp.to/daemontools/faq/create.html
 
 """
 
+LOCAL_DIRECTORY = '/collaborative_filtering/local'
+LOCAL_SERVICE_DIRECTORY = '/collaborative_filtering/service'
+DAEMONTOOLS_SERVICE_DIRECTORY = '/service'
+
+
 RUN = """
 #!/bin/sh
 exec 2>&1;
-{setup_cmd}s
-{chuser}s {interpreter}s {exec_path}s {args}s
+{setup_cmd}
+{chuser} {interpreter} {daemon_path} {args}
 """
 
 LOG = """
 #!/bin/sh
-exec {chuser}s multilog t ./main
+exec {chuser} multilog t ./main
 """
 def test_writeable(path, module): 
     try:
@@ -63,7 +71,7 @@ def main():
             'virtualenv': {},
             'user': {},
             'args': {'type': 'dict'},
-            'exec_path': {'required': True},
+            'daemon_path': {'required': True},
             'name': {'required': True},
             'count': {'default': 1, 'type': 'int'},
         }
@@ -74,11 +82,11 @@ def main():
     virtualenv = module.params['virtualenv']
     user = module.params['user']
     args = module.params['args']
-    exec_path = module.params['exec_path']
+    daemon_path = module.params['daemon_path']
     name = module.params['name']
     count = module.params['count']
 
-    if exec_path.strip() == "":
+    if daemon_path.strip() == "":
         module.fail_json(msg="The path to clone your service is required.")
     if name.strip() == "":
         module.fail_json(msg="You must name your service.")
@@ -89,34 +97,62 @@ def main():
 
     chuser = "setuidgid {}".format(user.strip()) if user.strip() else ""
     interpreter = "{}/bin/python".format(virtualenv.strip()) if virtualenv.strip() else sys.executable
-    exec_path = exec_path.strip()
+    daemon_path = daemon_path.strip()
     args = " ".join(["--{}={}".format(k, v) for k, v in args.items()])
 
     run = RUN.format(setup_cmd=setup_cmd, 
             chuser=chuser, 
             interpreter=interpreter, 
-            exec_path=exec_path, 
+            daemon_path=daemon_path, 
             args=args) 
     log = LOG.format(chuser=chuser)
 
-    """
-    TODO: 
-    * Test setup command?  
-    """
     if state == 'started':
         # Check for writeablility of local path to copy daemon to. /collaborative_filtering/service
-        test_writeable('/collaborative_filtering/local', module)
+        test_writeable(LOCAL_DIRECTORY, module)
         # Check writeability of path to install run script (that references the daemon script in the run command)
-        test_writeable('/collaborative_filtering/service', module)
+        test_writeable(LOCAL_SERVICE_DIRECTORY, module)
         # Check that we can link in /service
-        test_writeable('/service')
+        test_writeable(DAEMONTOOLS_SERVICE_DIRECTORY, module)
         # Check that the user exists and make the copy of our daemon executable by them
-    else:
-        pass # TODO: Remove the service
+        if user.strip():
+            try:
+                pwd.getpwnam(user.strip())
+            except KeyError:
+                module.fail_json(msg="The user, {}, does not exist.".format(user.strip()))
 
-    module.exit_json(changed=True, **{
-        'run': run, 'log': log
-    })
+        # Sync daemon application
+        module.run_command("rsync -a --copy-dirlinks --delete {} {}".format(daemon_path, LOCAL_DIRECTORY))
+        
+        # Write service files/dirs
+        service_directories = []
+        for i in xrange(count):
+            service_directory = os.path.join(LOCAL_SERVICE_DIRECTORY, '{}-{}'.format(name, i))
+            service_directories.append(service_directory)
+            try:
+                os.makedirs(service_directory)
+            except OSError:
+                pass # Exists
+            with open(os.path.join(service_directory, 'run'), 'w+') as run_fp:
+                run_fp.write(run)
+            log_directory = os.path.join(service_directory, 'log')
+            try:
+                os.makedirs(log_directory)
+            except OSError:
+                pass # Exists
+            with open(os.path.join(log_directory, 'run'), 'w+') as log_fp:
+                log_fp.write(log)
+
+        # Symlink in services
+        for service_directory in service_directories:
+            try:
+                os.symlink(service_directory, os.path.join(DAEMONTOOLS_SERVICE_DIRECTORY, os.path.basename(service_directory))) 
+            except OSError:
+                pass # Exists
+    else:
+        return module.fail_json(msg="Removing services is not yet implemented. You have to do it manually.")
+
+    module.exit_json(changed=True)
 
 if __name__ == '__main__':
     main()
