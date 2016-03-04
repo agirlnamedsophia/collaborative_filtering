@@ -105,7 +105,7 @@ def write_file(filepath, contents):
     if before != after:
         with open(filepath, 'w+') as fp:
             fp.write(contents)
-            os.chmod(filepath, 0755)
+            os.chmod(filepath, '0755')
         return True
     return False
 
