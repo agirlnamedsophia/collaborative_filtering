@@ -1,0 +1,9 @@
+---
+- name: "Hello world."
+  hosts: default
+  user: vagrant
+  sudo: yes
+
+  tasks:
+   - name: "O Hai"
+     shell: date >> /var/now.txt
