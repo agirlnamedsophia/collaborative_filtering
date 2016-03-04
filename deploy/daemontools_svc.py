@@ -34,14 +34,14 @@ options:
 """
 
 EXAMPLES = """
-name: "Deploy some service called foo.py"
+name: "Install collaborative_filtering service"
 daemontools_svc:
     state=started
     setup_cmd="export APP_ENVIRONMENT=dev"
     user=cfuser
-    run_cmd="/local/venv/collaborative_filtering/bin/python /collaborative_filtering/local/foo.py"
+    run_cmd="/local/venv/collaborative_filtering/bin/python /collaborative_filtering/local/collaborative_filtering.py"
     daemon_path="/opt/personal/collaborative_filtering/collaborative_filtering.py"
-    name=foo
+    name=collaborative_filtering
     count=2
 """
 
