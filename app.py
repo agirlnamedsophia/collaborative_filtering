@@ -7,7 +7,7 @@ class MainHandler(tornado.web.RequestHandler):
         self.write("Hello tornado!")
 
 
-class RecommendationHandler(tornado.web.RequestHandler):
+class InteractionEventHandler(tornado.web.RequestHandler):
     def get(self):
         self.write('GET - Susie will like this because Jane did, too')
 
@@ -15,7 +15,7 @@ class RecommendationHandler(tornado.web.RequestHandler):
 def make_app():
     return tornado.web.Application([
         (r"/", MainHandler),
-        (r"/recommendation/?", RecommendationHandler)
+        (r"/event/?", InteractionEventHandler)
     ])
 
 if __name__ == '__main__':
