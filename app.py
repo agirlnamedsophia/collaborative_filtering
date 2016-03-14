@@ -1,21 +1,29 @@
 import tornado.ioloop
 import tornado.web
 
-
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
         self.write("Hello tornado!")
 
 
+class CFError(Exception):
+    def __init__(self, message, code):
+        self.message = message
+        self.code = code
+        super(Exception, self).__init__(message)
+
+
 class EventHandler(tornado.web.RequestHandler):
-    """ This will POST to the database the players
-    in an interaction that will then be analyzed.
+    """ This will POST an interaction between
+    the players to the database
     """
     def post(self, actor, entity):
         try:
             self.write('POST with an actor and entity')
-        except OSError as e:
-            self.respond(e.message, e.code)
+        except CFError as e:
+            self.set_status(e.code)
+            self.write(e.message)
+            self.finish()
 
 
 class EventMetricsHandler(tornado.web.RequestHandler):
@@ -24,19 +32,11 @@ class EventMetricsHandler(tornado.web.RequestHandler):
     """
     def get(self, event_id):
         try:
-            event = retrieve_from_db(event_id)
-            self.write(event.serialize())
-        except OSError as e:
-            self.respond(e.message, e.code)
-
-
-def respond(self, data, code=200):
-    self.set_status(code)
-    self.write(JSONEncoder().encode({
-        "status": code,
-        "data": data
-    }))
-    self.finish()
+            self.write('Here is where we fetch an event metric')
+        except CFError as e:
+            self.set_status(e.code)
+            self.write(e.message)
+            self.finish()
 
 
 def make_app():
