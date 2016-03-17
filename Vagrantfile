@@ -7,7 +7,8 @@ Vagrant.configure(2) do |config|
 
     config.vm.synced_folder '/opt/collaborative_filtering', '/opt/collaborative_filtering'
 
-    config.vm.network "forwarded_port", guest: 80, host: 8080
+    config.vm.network "forwarded_port", guest: 8080, host: 8080
+    config.vm.network "forwarded_port", guest: 8081, host: 8081
 
     config.vm.provider 'virtualbox' do |vbox|
         vbox.memory = 2048
@@ -15,6 +16,6 @@ Vagrant.configure(2) do |config|
     end
 
     config.vm.provision "ansible" do |ansible|
-        ansible.playbook = "/opt/collaborative_filtering/deploy/ansible_playbook.yml"
+        ansible.playbook = "/opt/collaborative_filtering/deploy/collaborative_filtering_deploy.yml"
     end
 end

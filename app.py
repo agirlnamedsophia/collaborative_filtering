@@ -1,6 +1,8 @@
 import tornado.ioloop
 import tornado.web
 
+import optparse
+
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
@@ -13,6 +15,11 @@ def make_app():
     ])
 
 if __name__ == '__main__':
+    parser = optparse.OptionParser()
+    parser.add_option('--port')
+
+    options, _ = parser.parse_args()
+
     app = make_app()
-    app.listen(8080)
+    app.listen(int(options.port))
     tornado.ioloop.IOLoop.current().start()
