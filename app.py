@@ -2,6 +2,8 @@ import tornado.ioloop
 import tornado.web
 import optparse
 
+import redis
+
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
@@ -16,12 +18,15 @@ class CFError(Exception):
 
 
 class EventHandler(tornado.web.RequestHandler):
-    """ This will POST an interaction between
-    the players to the database
+    """
+        POST the required parameters
+        * `actor`: id of the actor interacting
+        * `entity`: id of the entity receiving
     """
     def post(self, actor, entity):
         try:
-            self.write('POST with an actor and entity')
+            client.set('event', actor, entity)
+            self.write('success')
         except CFError as e:
             self.set_status(e.code)
             self.write(e.message)
@@ -32,9 +37,10 @@ class EventMetricsHandler(tornado.web.RequestHandler):
     """ This will GET processed data metrics for events
     stored in the DB, found by event_id.
     """
-    def get(self, event_id):
+    def get(self, event):
         try:
-            self.write('Here is where we fetch an event metric')
+            entity = client.get(event)
+            self.write('success')
         except CFError as e:
             self.set_status(e.code)
             self.write(e.message)
@@ -45,10 +51,12 @@ def make_app():
     return tornado.web.Application([
         (r"/", MainHandler),
         (r"/event/(?P<actor>[^\/]+)/?(?P<entity>[^\/]+)?/", EventHandler),
-        (r"/event_metrics/(\d+)", EventMetricsHandler)
+        (r"/event_metrics/([^\/]+)", EventMetricsHandler)
     ])
 
 if __name__ == '__main__':
+    client = redis.StrictRedis(REDIS_HOST, REDIS_PORT)
+
     parser = optparse.OptionParser()
     parser.add_option('--port')
 
