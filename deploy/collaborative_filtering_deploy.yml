@@ -1,0 +1,7 @@
+---
+- hosts: default
+  sudo: true
+  roles:
+    - collaborative_filtering
+    - collaborative_filtering_qr
+    - collaborative_filtering_api
