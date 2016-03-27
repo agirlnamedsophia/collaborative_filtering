@@ -11,17 +11,16 @@ class MainHandler(tornado.web.RequestHandler):
 
 
 class CFError(Exception):
-    def __init__(self, message, code):
-        self.message = message
-        self.code = code
-        super(Exception, self).__init__(message)
+    pass
+    self.message = message
+    self.code = code
 
 
 class EventHandler(tornado.web.RequestHandler):
     """
         POST the required parameters
-        * `actor`: id of the actor interacting
-        * `entity`: id of the entity receiving
+        actor (int): id of the actor interacting
+        entity (int): id of the entity receiving
     """
     def post(self, actor, entity):
         try:
@@ -30,12 +29,12 @@ class EventHandler(tornado.web.RequestHandler):
         except CFError as e:
             self.set_status(e.code)
             self.write(e.message)
-            self.finish()
 
 
 class EventMetricsHandler(tornado.web.RequestHandler):
-    """ This will GET processed data metrics for events
-    stored in the DB, found by event_id.
+    """
+        GET processed data metrics for events
+        event (int): id of event
     """
     def get(self, event):
         try:
@@ -44,14 +43,13 @@ class EventMetricsHandler(tornado.web.RequestHandler):
         except CFError as e:
             self.set_status(e.code)
             self.write(e.message)
-            self.finish()
 
 
 def make_app():
     return tornado.web.Application([
         (r"/", MainHandler),
-        (r"/event/(?P<actor>[^\/]+)/?(?P<entity>[^\/]+)?/", EventHandler),
-        (r"/event_metrics/([^\/]+)", EventMetricsHandler)
+        (r"^event/$", EventHandler),
+        (r"^/event_metrics/([0-9]+)/$", EventMetricsHandler)
     ])
 
 if __name__ == '__main__':
