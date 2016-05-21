@@ -4,16 +4,13 @@ import optparse
 
 import redis
 
+from settings import REDIS_HOST, REDIS_PORT
+
+client = redis.StrictRedis(REDIS_HOST, REDIS_PORT)
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
         self.write("Hello tornado!")
-
-
-class CFError(Exception):
-    pass
-    self.message = message
-    self.code = code
 
 
 class EventHandler(tornado.web.RequestHandler):
@@ -23,12 +20,14 @@ class EventHandler(tornado.web.RequestHandler):
         entity (int): id of the entity receiving
     """
     def post(self, actor, entity):
-        try:
-            client.set('event', actor, entity)
-            self.write('success')
-        except CFError as e:
-            self.set_status(e.code)
-            self.write(e.message)
+        r = client
+        # what should the key be?
+        key = 'fave:%s' % entity
+        event = r.sadd(key, actor, entity)
+        members = r.smembers(key)
+        response = { 'id': event,
+                     'members': list(members) }
+        self.write(response)
 
 
 class EventMetricsHandler(tornado.web.RequestHandler):
@@ -37,24 +36,23 @@ class EventMetricsHandler(tornado.web.RequestHandler):
         event (int): id of event
     """
     def get(self, event):
-        try:
-            entity = client.get(event)
-            self.write('success')
-        except CFError as e:
-            self.set_status(e.code)
-            self.write(e.message)
+        r = client
+        # what is the event here? how do we calculate values?
+        metrics = r.zadd('event', 1, event)
+        entity = r.zrange('event', 0, -1, withscores=True)
+        response = { 'id': int(event),
+                     'name': entity }
+        self.write(response)
 
 
 def make_app():
     return tornado.web.Application([
         (r"/", MainHandler),
-        (r"^event/$", EventHandler),
-        (r"^/event_metrics/([0-9]+)/$", EventMetricsHandler)
+        (r"/event/(\d+)/(\d+)$", EventHandler),
+        (r"/event_metrics/(\d+)$", EventMetricsHandler)
     ])
 
 if __name__ == '__main__':
-    client = redis.StrictRedis(REDIS_HOST, REDIS_PORT)
-
     parser = optparse.OptionParser()
     parser.add_option('--port')
 
